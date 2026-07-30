@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ConceptLens AI - Visual Socratic Educator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col antialiased">
+
+  <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/30">
+          CL
+        </div>
+        <span class="font-bold text-xl tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+          ConceptLens AI
+        </span>
+      </div>
+      <span class="text-xs bg-slate-800 border border-slate-700 text-slate-400 px-2.5 py-1 rounded-full">
+        Prometheus AI Hackathon MVP
+      </span>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <div class="lg:col-span-8 space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+        <label for="topicInput" class="block text-sm font-medium text-slate-300 mb-2">
+          What concept or topic do you want to learn today?
+        </label>
+        <div class="flex gap-2">
+          <input 
+            type="text" 
+            id="topicInput" 
+            placeholder="e.g., Quantum Entanglement, Photosynthesis, Neural Networks..." 
+            class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition"
+          />
+          <button 
+            onclick="generateLesson()" 
+            id="submitBtn"
+            class="bg-brand-600 hover:bg-brand-500 text-white font-medium px-5 py-2.5 rounded-lg transition shadow-lg shadow-brand-600/20 flex items-center gap-2 disabled:opacity-50"
+          >
+            <span>Analyze</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="loadingState" class="hidden bg-slate-900/50 border border-slate-800/80 rounded-xl p-12 text-center">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-500 border-t-transparent mb-3"></div>
+        <p class="text-slate-400 text-sm">Deconstructing concept, rendering flowchart & assembling quiz...</p>
+      </div>
+
+      <div id="lessonContainer" class="hidden space-y-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
+          <h1 id="lessonTitle" class="text-2xl font-bold text-slate-100 mb-3"></h1>
+          <p id="lessonSummary" class="text-slate-300 leading-relaxed mb-6 bg-slate-950/60 p-4 rounded-lg border border-slate-800/60"></p>
+          
+          <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Core Pillars</h3>
+          <ul id="keyConceptsList" class="grid grid-cols-1 md:grid-cols-3 gap-3"></ul>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
+          <h2 class="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
+            <span>📊</span> Interactive Diagram Roadmap
+          </h2>
+          <div class="bg-slate-950 border border-slate-800/80 rounded-lg p-4 overflow-x-auto flex justify-center min-h-[180px] items-center" id="mermaidWrapper">
+            <div id="mermaidDiagram" class="mermaid"></div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
+          <h2 class="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
+            <span>🧠</span> Active Recall Check
+          </h2>
+          <div id="quizContainer" class="space-y-6"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-4 flex flex-col">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-xl flex flex-col h-[600px] sticky top-20">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80 rounded-t-xl">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <h2 class="font-semibold text-slate-200">Socratic Tutor</h2>
+          </div>
+          <span class="text-xs text-slate-500">Guides, never spoils</span>
+        </div>
+
+        <div id="chatHistory" class="flex-1 p-4 overflow-y-auto space-y-3 text-sm">
+          <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 text-slate-400">
+            👋 Type a topic above to start learning! When you have questions, ask me here. I'll guide you through it using the Socratic method.
+          </div>
+        </div>
+
+        <form onsubmit="sendChatMessage(event)" class="p-3 border-t border-slate-800 flex gap-2">
+          <input 
+            type="text" 
+            id="chatInput" 
+            placeholder="Ask a question..." 
+            disabled 
+            class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 text-sm placeholder-slate-500 focus:outline-none focus:border-brand-500 disabled:opacity-50"
+          />
+          <button 
+            type="submit" 
+            id="chatSendBtn" 
+            disabled
+            class="bg-brand-600 hover:bg-brand-500 text-white px-3 py-2 rounded-lg text-sm transition disabled:opacity-50"
+          >
+            Send
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let currentTopic = '';
+    let chatMessages = [];
+
+    async function generateLesson() {
+      const topicInput = document.getElementById('topicInput');
+      const topic = topicInput.value.trim();
+      if (!topic) return;
+
+      currentTopic = topic;
+      chatMessages = [];
+      
+      document.getElementById('loadingState').classList.remove('hidden');
+      document.getElementById('lessonContainer').classList.add('hidden');
+      document.getElementById('submitBtn').disabled = true;
+
+      try {
+        const res = await fetch('/api/generate-lesson', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic })
+        });
+
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        document.getElementById('lessonTitle').textContent = data.title;
+        document.getElementById('lessonSummary').textContent = data.summary;
+
+        const keyConceptsList = document.getElementById('keyConceptsList');
+        keyConceptsList.innerHTML = data.key_concepts.map(concept => `
+          <li class="bg-slate-950 border border-slate-800 p-3 rounded-lg text-xs font-medium text-slate-300">
+            • ${concept}
+          </li>
+        `).join('');
+
+        const mermaidWrapper = document.getElementById('mermaidWrapper');
+        mermaidWrapper.innerHTML = `<div id="mermaidDiagram" class="mermaid">${data.mermaid_code}</div>`;
+        mermaid.run({ nodes: [document.getElementById('mermaidDiagram')] });
+
+        renderQuiz(data.quiz);
+
+        document.getElementById('chatInput').disabled = false;
+        document.getElementById('chatSendBtn').disabled = false;
+        document.getElementById('chatHistory').innerHTML = `
+          <div class="bg-brand-950/40 border border-brand-800/40 rounded-lg p-3 text-brand-200 text-xs">
+            🎓 Socratic Tutor is ready for <strong>"${data.title}"</strong>. What part would you like to explore?
+          </div>
+        `;
+
+        document.getElementById('lessonContainer').classList.remove('hidden');
+      } catch (err) {
+        alert('Failed to generate lesson: ' + err.message);
+      } finally {
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('submitBtn').disabled = false;
+      }
+    }
+
+    function renderQuiz(quizList) {
+      const quizContainer = document.getElementById('quizContainer');
+      quizContainer.innerHTML = quizList.map((q, qIdx) => `
+        <div class="bg-slate-950 border border-slate-800 rounded-lg p-4 space-y-3">
+          <p class="font-medium text-slate-200 text-sm">${qIdx + 1}. ${q.question}</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            ${q.options.map((opt, oIdx) => `
+              <button 
+                onclick="checkAnswer(this, ${qIdx}, ${oIdx}, ${q.correctIndex}, '${encodeURIComponent(q.explanation)}')"
+                class="quiz-btn-${qIdx} text-left bg-slate-900 border border-slate-800 hover:border-slate-700 p-2.5 rounded-md text-xs text-slate-300 transition"
+              >
+                ${opt}
+              </button>
+            `).join('')}
+          </div>
+          <div id="quiz-feedback-${qIdx}" class="hidden text-xs p-2.5 rounded mt-2"></div>
+        </div>
+      `).join('');
+    }
+
+    function checkAnswer(btn, qIdx, selectedIdx, correctIdx, encodedExplanation) {
+      const explanation = decodeURIComponent(encodedExplanation);
+      const buttons = document.querySelectorAll(`.quiz-btn-${qIdx}`);
+      const feedback = document.getElementById(`quiz-feedback-${qIdx}`);
+
+      buttons.forEach(b => b.disabled = true);
+
+      if (selectedIdx === correctIdx) {
+        btn.classList.add('bg-emerald-950', 'border-emerald-600', 'text-emerald-200');
+        feedback.className = 'text-xs p-2.5 rounded mt-2 bg-emerald-950/60 border border-emerald-800 text-emerald-300';
+        feedback.innerHTML = `✅ <strong>Correct!</strong> ${explanation}`;
+      } else {
+        btn.classList.add('bg-rose-950', 'border-rose-600', 'text-rose-200');
+        buttons[correctIdx].classList.add('bg-emerald-950/50', 'border-emerald-700', 'text-emerald-300');
+        feedback.className = 'text-xs p-2.5 rounded mt-2 bg-rose-950/60 border border-rose-800 text-rose-300';
+        feedback.innerHTML = `❌ <strong>Incorrect.</strong> ${explanation}`;
+      }
+      feedback.classList.remove('hidden');
+    }
+
+    async function sendChatMessage(e) {
+      e.preventDefault();
+      const input = document.getElementById('chatInput');
+      const userMessage = input.value.trim();
+      if (!userMessage) return;
+
+      const historyContainer = document.getElementById('chatHistory');
+
+      historyContainer.innerHTML += `
+        <div class="bg-brand-600 text-white rounded-lg p-2.5 text-xs ml-6 ml-auto w-fit max-w-[85%]">
+          ${userMessage}
+        </div>
+      `;
+      input.value = '';
+      historyContainer.scrollTop = historyContainer.scrollHeight;
+
+      const loadingId = 'think-' + Date.now();
+      historyContainer.innerHTML += `
+        <div id="${loadingId}" class="bg-slate-950 border border-slate-800 text-slate-400 rounded-lg p-2.5 text-xs mr-6 w-fit animate-pulse">
+          Tutor is thinking...
+        </div>
+      `;
+      historyContainer.scrollTop = historyContainer.scrollHeight;
+
+      try {
+        const res = await fetch('/api/socratic-chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: currentTopic,
+            chatHistory: chatMessages,
+            userMessage
+          })
+        });
+
+        const data = await res.json();
+        document.getElementById(loadingId).remove();
+
+        if (data.reply) {
+          chatMessages.push({ role: 'user', content: userMessage });
+          chatMessages.push({ role: 'model', content: data.reply });
+
+          historyContainer.innerHTML += `
+            <div class="bg-slate-950 border border-slate-800 text-slate-300 rounded-lg p-2.5 text-xs mr-6 w-fit max-w-[85%]">
+              💡 ${data.reply}
+            </div>
+          `;
+        }
+      } catch (err) {
+        document.getElementById(loadingId).remove();
+        historyContainer.innerHTML += `
+          <div class="text-rose-400 text-xs">Failed to get tutor response.</div>
+        `;
+      }
+      historyContainer.scrollTop = historyContainer.scrollHeight;
+    }
+  </script>
+</body>
+</html>
